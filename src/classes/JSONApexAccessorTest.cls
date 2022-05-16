@@ -7,6 +7,8 @@ public class JSONApexAccessorTest {
     // https://www.learningcontainer.com/sample-json-file/
     private static final String JSON_EXAMPLE_1 = '{"firstName":"Rack","lastName":"Jackon","gender":"man","age":24,"address":{"streetAddress":"126","city":"San Jone","state":"CA","postalCode":"394221"},"phoneNumbers":[{"type":"home","number":"7383627627"}]}';
     private static final String JSON_EXAMPLE_2 = '{"users":[{"userId":1,"firstName":"Krish","lastName":"Lee","phoneNumber":"123456","emailAddress":"krish.lee@learningcontainer.com"},{"userId":2,"firstName":"racks","lastName":"jacson","phoneNumber":"123456","emailAddress":"racks.jacson@learningcontainer.com"}]}';
+    //https://github.com/mdn/fetch-examples/blob/master/fetch-json/products.json
+    private static final String JSON_EXAMPLE_3 = '{"products":[{"Name":"Cheese","Price":2.5,"Location":"Refrigerated foods"},{"Name":"Crisps","Price":3,"Location":"the Snack isle"},{"Name":"Pizza","Price":4,"Location":"Refrigerated foods"},{"Name":"Chocolate","Price":1.5,"Location":"the Snack isle"},{"Name":"Self-raising flour","Price":1.5,"Location":"Home baking"},{"Name":"Ground almonds","Price":3,"Location":"Home baking"}]}';
     
     @isTest
     public static void simpleValuesTest() {
@@ -41,6 +43,8 @@ public class JSONApexAccessorTest {
         // Simple array
         String bmw = (String) JSONApexAccessor.getValue('["Ford", "BMW", "Fiat"]', '[1]');
         System.assertEquals('BMW', bmw);
+        
+       	JSONApexAccessor.getValue('["Ford", "BMW", "Fiat"]', ''); // Just for coverage
     }
     
     @isTest
@@ -53,6 +57,10 @@ public class JSONApexAccessorTest {
         System.assertEquals('123456', userList.get(0).phoneNumber);
         
        	UserWrapper user = (UserWrapper) jsonAccessor.getTypedValue(UserWrapper.class, 'users[0]');
+        System.assertEquals(user.phoneNumber, userList.get(0).phoneNumber);
+        
+        // Static way
+        user = (UserWrapper) JSONApexAccessor.getTypedValue(UserWrapper.class, JSON_EXAMPLE_2, 'users[0]');
         System.assertEquals(user.phoneNumber, userList.get(0).phoneNumber);
         
         // Casting into Map
@@ -89,6 +97,23 @@ public class JSONApexAccessorTest {
             // Index out of bounds
             System.assert(e instanceof ListException);
         }
+        
+        // V1.1
+        try {
+            jsonAccessor.node('users').whereExpr('invalid').get();
+        }
+        catch (HandledException e) {
+            System.assert(e.getMessage().contains('operator not found'));
+        }
+        
+        try {
+            jsonAccessor.node('users').whereExpr('a=').get();
+        }
+        catch (HandledException e) {
+            System.assert(e.getMessage().contains('missing operand'));
+        }
+        
+        System.assertEquals(null, jsonAccessor.node('notExists').whereExpr('a=b').get());
     }
     
     @isTest
@@ -113,6 +138,70 @@ public class JSONApexAccessorTest {
         System.debug('Total time (with utility): ' + total);
         
         System.assertEquals(cityA, cityB);
+    }
+    
+    // V1.1
+    
+    @isTest
+    public static void buildPatternTest() {
+        JSONApexAccessor j = new JSONApexAccessor(JSON_EXAMPLE_3);
+        
+        // This is the same as getValue(expr) but using builder pattern
+        String productName = (String) j.node('products[0].Name').get();
+        System.assertEquals('Cheese', productName);
+        System.assertEquals(null, j.node(null).get()); // Just for coverage
+        j.node('products[0].Name').getOne();
+    }
+    
+    @isTest
+    public static void whereTest() {
+        JSONApexAccessor j = new JSONApexAccessor(JSON_EXAMPLE_3);
+        
+        // String search
+        
+        // Equals
+        Map<String, Object> pizza = (Map<String, Object>) j.node('products').whereExpr('Name=Pizza').getOne();
+        System.assertEquals(4, pizza.get('Price')); // getOne returns only one element
+        
+        List<Object> refFoods = (List<Object>) j.node('products').whereExpr('Location=Refrigerated foods').get();
+        System.assertEquals(2, refFoods.size());
+        
+        // Not equals
+        List<Object> notPizza = (List<Object>) j.node('products').whereExpr('Name!=Pizza').get();
+        
+        for (Object product : notPizza) {
+            Map<String, Object> mapProduct = (Map<String, Object>) product;
+            System.assertNotEquals('Pizza', mapProduct.get('Name'));
+        }
+        
+        // Not valid for String (> operator)
+        System.assertEquals(0, ((List<Object>) j.node('products').whereExpr('Name>Pizza').get()).size());
+        
+        // Number search
+        
+        // Equals
+        List<Object> productsByPrice = (List<Object>) j.node('products').whereExpr('Price=1.5').get();
+        System.assertEquals(2, productsByPrice.size());
+        
+        // Not equals
+        productsByPrice = (List<Object>) j.node('products').whereExpr('Price!=1.5').get();
+        System.assertEquals(4, productsByPrice.size());
+        
+        // >
+        productsByPrice = (List<Object>) j.node('products').whereExpr('Price>1.5').get();
+        System.assertEquals(4, productsByPrice.size());
+        
+        // >=
+        productsByPrice = (List<Object>) j.node('products').whereExpr('Price>=1.5').get();
+        System.assertEquals(6, productsByPrice.size());
+        
+        // <
+        productsByPrice = (List<Object>) j.node('products').whereExpr('Price<1.5').get();
+        System.assertEquals(0, productsByPrice.size());
+        
+        // <=
+        productsByPrice = (List<Object>) j.node('products').whereExpr('Price<=1.5').get();
+        System.assertEquals(2, productsByPrice.size());
     }
     
     private class UserWrapper {
