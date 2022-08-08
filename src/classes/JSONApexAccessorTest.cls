@@ -5,7 +5,7 @@
 public class JSONApexAccessorTest {
     
     // https://www.learningcontainer.com/sample-json-file/
-    private static final String JSON_EXAMPLE_1 = '{"firstName":"Rack","lastName":"Jackon","gender":"man","age":24,"address":{"streetAddress":"126","city":"San Jone","state":"CA","postalCode":"394221"},"phoneNumbers":[{"type":"home","number":"7383627627"}]}';
+    private static final String JSON_EXAMPLE_1 = '{"firstName":"Rack","lastName":"Jackon","gender":"man","age":24,"address":{"streetAddress":"126","city":"San Jone","state":"CA","postalCode":"394221"},"phoneNumbers":[{"type":"home","number":"7383627627"}],"result":true}';
     private static final String JSON_EXAMPLE_2 = '{"users":[{"userId":1,"firstName":"Krish","lastName":"Lee","phoneNumber":"123456","emailAddress":"krish.lee@learningcontainer.com"},{"userId":2,"firstName":"racks","lastName":"jacson","phoneNumber":"123456","emailAddress":"racks.jacson@learningcontainer.com"}]}';
     //https://github.com/mdn/fetch-examples/blob/master/fetch-json/products.json
     private static final String JSON_EXAMPLE_3 = '{"products":[{"Name":"Cheese","Price":2.5,"Location":"Refrigerated foods"},{"Name":"Crisps","Price":3,"Location":"the Snack isle"},{"Name":"Pizza","Price":4,"Location":"Refrigerated foods"},{"Name":"Chocolate","Price":1.5,"Location":"the Snack isle"},{"Name":"Self-raising flour","Price":1.5,"Location":"Home baking"},{"Name":"Ground almonds","Price":3,"Location":"Home baking"}]}';
@@ -25,7 +25,7 @@ public class JSONApexAccessorTest {
         // Nested value example
         String city = (String) jsonAccessor.getValue('address.city');
         System.assertEquals('San Jone', city);
-       	
+        
         // Nested value example (brackets)
         System.assertEquals('San Jone', (String) jsonAccessor.getValue('address[city]'));
     }
@@ -44,7 +44,7 @@ public class JSONApexAccessorTest {
         String bmw = (String) JSONApexAccessor.getValue('["Ford", "BMW", "Fiat"]', '[1]');
         System.assertEquals('BMW', bmw);
         
-       	JSONApexAccessor.getValue('["Ford", "BMW", "Fiat"]', ''); // Just for coverage
+        JSONApexAccessor.getValue('["Ford", "BMW", "Fiat"]', ''); // Just for coverage
     }
     
     @isTest
@@ -56,7 +56,7 @@ public class JSONApexAccessorTest {
         System.assertEquals(2, userList.size());
         System.assertEquals('123456', userList.get(0).phoneNumber);
         
-       	UserWrapper user = (UserWrapper) jsonAccessor.getTypedValue(UserWrapper.class, 'users[0]');
+        UserWrapper user = (UserWrapper) jsonAccessor.getTypedValue(UserWrapper.class, 'users[0]');
         System.assertEquals(user.phoneNumber, userList.get(0).phoneNumber);
         
         // Static way
@@ -72,7 +72,7 @@ public class JSONApexAccessorTest {
     public static void negativeTest() {
         // Bad JSON
         try {
-       		JSONApexAccessor jsonAccessor = new JSONApexAccessor('[Not a valid JSON]');
+            JSONApexAccessor jsonAccessor = new JSONApexAccessor('[Not a valid JSON]');
         } catch (Exception e) {
             System.assert(e instanceof JSONException);
         }
@@ -202,6 +202,44 @@ public class JSONApexAccessorTest {
         // <=
         productsByPrice = (List<Object>) j.node('products').whereExpr('Price<=1.5').get();
         System.assertEquals(2, productsByPrice.size());
+        
+        // V1.2 - Get typed value
+        List<ProductWrapper> products = (List<ProductWrapper>) 
+            j.node('products').whereExpr('Price<=1.5').getTypedValue(List<ProductWrapper>.class);
+        System.assertEquals(2, products.size());
+        System.assertEquals(1.5, products[0].Price);
+    }
+    
+    // V1.2 - Primitive extraction test
+    
+    @isTest
+    public static void primitiveExtractionTest() {
+        JSONApexAccessor j = new JSONApexAccessor(JSON_EXAMPLE_1);
+        
+        // Boolean
+        System.assertEquals(true, j.node('result').getBooleanValue()); // Build pattern way
+        System.assertEquals(true, j.getBooleanValue('result')); // Instance way
+        System.assertEquals(true, JSONApexAccessor.getBooleanValue(JSON_EXAMPLE_1, 'result')); // Static way
+        
+        // Decimal
+        System.assertEquals(24, j.node('age').getDecimalValue()); // Build pattern way
+        System.assertEquals(24, j.getDecimalValue('age')); // Instance way
+        System.assertEquals(24, JSONApexAccessor.getDecimalValue(JSON_EXAMPLE_1, 'age')); // Static way
+        
+        // Double
+        System.assertEquals(24, j.node('age').getDoubleValue()); // Build pattern way
+        System.assertEquals(24, j.getDoubleValue('age')); // Instance way
+        System.assertEquals(24, JSONApexAccessor.getDoubleValue(JSON_EXAMPLE_1, 'age')); // Static way
+        
+        // Integer
+        System.assertEquals(24, j.node('age').getIntegerValue()); // Build pattern way
+        System.assertEquals(24, j.getIntegerValue('age')); // Instance way
+        System.assertEquals(24, JSONApexAccessor.getIntegerValue(JSON_EXAMPLE_1, 'age')); // Static way
+        
+        // String
+        System.assertEquals('CA', j.node('address.state').getStringValue()); // Build pattern way
+        System.assertEquals('CA', j.getStringValue('address.state')); // Instance way
+        System.assertEquals('CA', JSONApexAccessor.getStringValue(JSON_EXAMPLE_1, 'address.state')); // Static way
     }
     
     private class UserWrapper {
@@ -210,6 +248,12 @@ public class JSONApexAccessorTest {
         public String lastName {get; set;}
         public String phoneNumber {get; set;}
         public String emailAddress {get; set;}
+    }
+    
+    private class ProductWrapper {
+        public String Name {get; set;}
+        public Decimal Price {get; set;}
+        public String Location {get; set;}
     }
     
 }

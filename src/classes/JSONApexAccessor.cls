@@ -6,8 +6,8 @@
  * 
  * @author Hernán Vogel <hernan.vogel@gmail.com>
  * created on 05/05/2022
- * modified 05/15/2022
- * @version 1.1
+ * modified 08/07/2022
+ * @version 1.2
  */
 public class JSONApexAccessor {
     
@@ -19,7 +19,7 @@ public class JSONApexAccessor {
     // AND/OR not supported yet
     private static final String SUPPORTED_OPERATORS_REGEX = '<=|>=|<|>|!=|=';
     
-    // Constructor, recieves the JSON string
+    // Constructor, receives the JSON string
     public JSONApexAccessor(String jsonStr) {
         this.jsonObj = JSON.deserializeUntyped(jsonStr);
     }
@@ -46,11 +46,20 @@ public class JSONApexAccessor {
         return JSON.deserialize(JSON.serialize(getValue(expr)), T);
     }
     
+    // V1.2
+    public Object getTypedValue(Type T) {
+        if (nodeExpr == null) {
+            return null;
+        }
+        
+        return JSON.deserialize(JSON.serialize(get()), T);
+    }
+    
     // Static method
     public static Object getTypedValue(Type T, String jsonStr, String expr) {
         return JSON.deserialize(JSON.serialize(getValue(jsonStr, expr)), T);
     }
-	
+    
     private static Object getNodeValue(Object jsonNode, List<String> inputNodes, Integer pos) {
         //System.debug('Entry - getNodeValue');
         
@@ -126,8 +135,8 @@ public class JSONApexAccessor {
             String operator = getExprOperator(whereExpr); // E.g. =
             String[] operands = getOperands(whereExpr);   // E.g. operands[0] -> userId, operands[1] -> 2
             
-            System.debug('operator value: ' + operator);
-            System.debug('operands value: ' + operands);
+            //System.debug('operator value: ' + operator);
+            //System.debug('operands value: ' + operands);
             
             if (operator == null) {
                 throw new HandledException('Invalid whereExpr: operator not found/not supported');
@@ -136,9 +145,9 @@ public class JSONApexAccessor {
             if (operands.size() != 2) {
                 throw new HandledException('Invalid whereExpr: missing operand(s)');
             }
-			            
+                        
             // Matches
-	        List<Object> matches = new List<Object>();
+            List<Object> matches = new List<Object>();
             
             for (Object obj : values) {
                 // In each iteration, cast to a Map<String, Object>
@@ -146,7 +155,7 @@ public class JSONApexAccessor {
                 //System.debug('element value: ' + element);
                 
                 if (element.containsKey(operands[0]) &&
-                    	compare(element.get(operands[0]), operands[1], operator)) {
+                        compare(element.get(operands[0]), operands[1], operator)) {
                     matches.add(element);
                 }
             }
@@ -165,6 +174,82 @@ public class JSONApexAccessor {
         }
         
         return getResult;
+    }
+    
+    // V1.2 - Primitive extraction
+    // Boolean
+    
+    public Boolean getBooleanValue() {
+        return (Boolean) get();
+    }
+    
+    public Boolean getBooleanValue(String expr) {
+        return (Boolean) getNodeValue(jsonObj, exprToArray(expr), 0);
+    }
+    
+    public static Boolean getBooleanValue(String jsonStr, String expr) {
+        Object jsonObj = JSON.deserializeUntyped(jsonStr);
+        return (Boolean) getNodeValue(jsonObj, exprToArray(expr), 0);
+    }
+    
+    // Decimal
+    
+    public Decimal getDecimalValue() {
+        return (Decimal) get();
+    }
+    
+    public Decimal getDecimalValue(String expr) {
+        return (Decimal) getNodeValue(jsonObj, exprToArray(expr), 0);
+    }
+    
+    public static Decimal getDecimalValue(String jsonStr, String expr) {
+        Object jsonObj = JSON.deserializeUntyped(jsonStr);
+        return (Decimal) getNodeValue(jsonObj, exprToArray(expr), 0);
+    }
+    
+    // Double
+    
+    public Double getDoubleValue() {
+        return (Double) get();
+    }
+    
+    public Double getDoubleValue(String expr) {
+        return (Double) getNodeValue(jsonObj, exprToArray(expr), 0);
+    }
+    
+    public static Double getDoubleValue(String jsonStr, String expr) {
+        Object jsonObj = JSON.deserializeUntyped(jsonStr);
+        return (Double) getNodeValue(jsonObj, exprToArray(expr), 0);
+    }
+    
+    // Integer
+    
+    public Integer getIntegerValue() {
+        return (Integer) get();
+    }
+    
+    public Integer getIntegerValue(String expr) {
+        return (Integer) getNodeValue(jsonObj, exprToArray(expr), 0);
+    }
+    
+    public static Integer getIntegerValue(String jsonStr, String expr) {
+        Object jsonObj = JSON.deserializeUntyped(jsonStr);
+        return (Integer) getNodeValue(jsonObj, exprToArray(expr), 0);
+    }
+    
+    // String
+    
+    public String getStringValue() {
+        return (String) get();
+    }
+    
+    public String getStringValue(String expr) {
+        return (String) getNodeValue(jsonObj, exprToArray(expr), 0);
+    }
+    
+    public static String getStringValue(String jsonStr, String expr) {
+        Object jsonObj = JSON.deserializeUntyped(jsonStr);
+        return (String) getNodeValue(jsonObj, exprToArray(expr), 0);
     }
     
     // Private utility methods
