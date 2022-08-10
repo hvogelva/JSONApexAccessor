@@ -3,7 +3,7 @@ APEX utility class to easy access/search JSON data
 (Pending english README)
 
 ### Introducción
-He desarrollado esta utilidad como una alternativa para acceder a un valor dado de un JSON (desde APEX) con menos código. Por ejemplo supongamos que existe el siguiente JSON:
+He desarrollado esta utilidad como una alternativa para acceder a un valor dado de un JSON (desde APEX) con menos código. Por ejemplo, dado el siguiente JSON:
 ``` js
 {
   "widget": {
@@ -25,14 +25,14 @@ Map<String, Object> mapWindow = (Map<String, Object>) mapWidget.get('window');
 String title = mapWindow.get('title');
 ```
 
-Con esta utilidad en cambio se podría hacer así:
+En cambio, con esta utilidad se podría hacer así:
 ``` apex
 new JSONApexAccessor(JSON_STR).getValue('widget.window.title');
 ```
-En pocas palabras, la idea es poder acceder a cualquier valor dentro del JSON utilizando la **notación JS**. Dicho esto, también es posible acceder a valores dentro de un array, por ejemplo: 
+En pocas palabras, la idea es poder acceder a cualquier valor dentro del JSON utilizando la **notación JS**. Dicho esto, también es posible acceder a valores dentro de un array (conociendo su posición). Por ejemplo: 
 `users[1].firstName`
 
-**En la clase de Test se pueden encontrar más ejemplos de uso**
+**En la clase de Test se pueden encontrar más ejemplos de uso** - La clase principal provee métodos estáticos para un uso rápido y simple, y métodos de instancia para un uso más completo.
 
 ### Búsqueda de valores
 Satisfecho con el resultado inicial, en la **versión 1.1** he decidido incorporar búsqueda de valores dentro de listas. Por ejemplo, dado el siguiente JSON:
@@ -61,7 +61,7 @@ Map<String, Object> pizza = (Map<String, Object>) j.node('products').whereExpr('
 List<Object> notPizza = (List<Object>) j.node('products').whereExpr('Name!=Pizza').get();
 ```
 
-O búsqueda de valores numéricos utilizando los operadores **>, <, >=, <=**
+O búsqueda de valores numéricos utilizando los operadores de comparación **>, <, >=, <=**
 
 ``` apex
 j.node('products').whereExpr('Price!=1.5').get();
@@ -70,12 +70,30 @@ j.node('products').whereExpr('Price>=1.5').get();
 j.node('products').whereExpr('Price<1.5').get();
 j.node('products').whereExpr('Price<=1.5').get();
 ```
+En la **versión 1.2** se ha actualizado el método **getTypedValue** para facilitar la conversión del retorno a una clase wrapper. Por ejemplo:
+
+``` apex
+List<ProductWrapper> products = (List<ProductWrapper>) 
+j.node('products').whereExpr('Price<=1.5').getTypedValue(List<ProductWrapper>.class);
+System.assertEquals(2, products.size());
+System.assertEquals(1.5, products[0].Price);
+```
+
+### Retorno en valores primitivos
+
+En la **versión 1.2** se ha agregado una característica que hacía falta: el retorno de datos en valores primitivos (**Boolean, Decimal, Double, Integer y String**, de momento). Por ejemplo:
+
+``` apex
+JSONApexAccessor j = new JSONApexAccessor(JSON_EXAMPLE_1);
+String state = j.getStringValue('address.state'));
+j.getBooleanValue(...); 
+j.getDecimalValue(...);
+j.getDoubleValue(...);
+j.getStringValue(...);
+```
 
 ### Conclusión
 
-Como comentaba, esta clase provee una forma alternativa de obtener valores de un JSON en APEX que espero que pueda ser de utilidad, y no espero que sea un reemplazo de utilizar la deserialización en un Map<String, Object> o el uso de una clase wrapper, ya que cada developer debería estar en condiciones de conocer cual es la forma más adecuada según escenario.
-
-Finalmente, me gustaría seguir explorando las capacidades que puede proveer esta utilidad, por ejemplo ofrecer directamente la salida en un tipo de dato conocido (String, Integer, Boolean, etc.) ya que actualmente devuelve un Object donde el developer es quien debe realizar la conversión.
-
+Esta clase provee una forma alternativa de obtener determinados valores de un JSON en APEX que espero que pueda ser de utilidad para quien decida utilizarla, No espero que sea un reemplazo de utilizar la deserialización en un Map<String, Object> o el uso de una clase wrapper.
 
 [![Deploy](https://raw.githubusercontent.com/afawcett/githubsfdeploy/master/deploy.png)](https://githubsfdeploy.herokuapp.com/?owner=hvogelva&repo=JSONApexAccessor&ref=main)
